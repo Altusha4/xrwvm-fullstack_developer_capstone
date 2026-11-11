@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fullstack-capstone
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bestcars
+  namespace: fullstack-capstone
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: bestcars}
+  template:
+    metadata:
+      labels: {app: bestcars}
+    spec:
+      containers:
+        - name: web
+          image: fullstack-capstone-web:1
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8000}]
+          env:
+            - {name: backend_url, value: 'http://localhost:3030'}
+            - {name: sentiment_analyzer_url, value: 'http://localhost:5000'}
+          readinessProbe:
+            httpGet: {path: /, port: 8000, httpHeaders: [{name: Host, value: localhost}]}
+            initialDelaySeconds: 15
+            periodSeconds: 5
+        - name: database
+          image: fullstack-capstone-database:1
+          imagePullPolicy: IfNotPresent
+          env: [{name: MONGO_URL, value: 'mongodb://localhost:27017/dealershipsDB'}]
+        - name: mongo
+          image: mongo:7
+        - name: sentiment
+          image: fullstack-capstone-sentiment:1
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bestcars
+  namespace: fullstack-capstone
+spec:
+  selector: {app: bestcars}
+  ports: [{port: 8000, targetPort: 8000}]
